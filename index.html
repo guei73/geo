@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1216">
+  <title>Геодиктант — страны и столицы</title>
+  <meta name="description" content="Тренажёр к географическому диктанту: 90 стран и столиц Евразии, Австралии и Океании на карте.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233d7cf2'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app" data-screen="menu" data-mode="map" data-highlight="on">
+    <main class="map-wrap" id="map"></main>
+
+    <!-- Игра -->
+    <header class="hud" id="hud">
+      <div class="hud-side hud-left">
+        <button class="icon-btn" id="btn-exit" type="button" title="В меню (Esc)" aria-label="В меню">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-pause" type="button" title="Пауза (P)" aria-label="Пауза">
+          <svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>
+        </button>
+        <div class="counter" title="Номер вопроса">
+          <span id="q-num">1</span><span class="muted">/<span id="q-total">90</span></span>
+        </div>
+      </div>
+
+      <div class="question-card" id="question-card">
+        <div class="question-kicker" id="q-kicker"></div>
+        <h1 class="question" id="question" aria-live="polite"></h1>
+        <button class="known-btn" id="btn-known" type="button" title="Столица известна — больше не спрашивать (K)">✓ Знаю, убрать из теста</button>
+        <div class="feedback" id="feedback" role="status" aria-live="polite">
+          <span class="feedback-icon" id="fb-icon"></span>
+          <span class="feedback-text" id="fb-text"></span>
+          <button class="next-btn" id="btn-next" type="button">Далее<i class="next-timer" id="next-timer"></i></button>
+        </div>
+      </div>
+
+      <div class="hud-side hud-right">
+        <div class="stat" title="Правильных ответов">
+          <span class="stat-label">Верно</span><b id="score">0</b>
+        </div>
+        <div class="stat" id="streak-box" title="Правильных ответов подряд">
+          <span class="stat-label">Серия</span><b id="streak">0</b>
+        </div>
+        <div class="stat stat-time" title="Время">
+          <b id="timer">0:00</b>
+        </div>
+      </div>
+    </header>
+
+    <div class="options" id="options" role="group" aria-label="Варианты ответа"></div>
+
+    <button class="skip-btn" id="btn-skip" type="button">Не знаю</button>
+
+    <form class="answer-form" id="answer-form" autocomplete="off">
+      <input class="answer-input" id="answer-input" type="text" inputmode="text" autocapitalize="sentences"
+             spellcheck="false" placeholder="Введите столицу" aria-label="Столица">
+      <button class="btn btn-primary" id="btn-answer" type="submit">Ответить</button>
+      <button class="btn" id="btn-input-skip" type="button">Не знаю</button>
+    </form>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <div class="map-controls" id="map-controls">
+      <button class="icon-btn" id="zoom-in" type="button" title="Приблизить (+)" aria-label="Приблизить"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></button>
+      <button class="icon-btn" id="zoom-out" type="button" title="Отдалить (−)" aria-label="Отдалить"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+      <button class="icon-btn" id="zoom-fit" type="button" title="Весь регион (0)" aria-label="Показать регион целиком"><svg viewBox="0 0 24 24"><path d="M5 9V5h4M19 9V5h-4M5 15v4h4M19 15v4h-4"/></svg></button>
+    </div>
+
+    <div class="progress-strip" id="progress-strip" aria-hidden="true"></div>
+
+    <div class="tooltip" id="tooltip" hidden></div>
+
+    <!-- Меню -->
+    <section class="panel menu" id="menu" aria-labelledby="menu-title">
+      <div class="panel-inner">
+        <header class="menu-head">
+          <h2 id="menu-title">Геодиктант</h2>
+          <p>90 стран и столиц Евразии, Австралии и Океании</p>
+        </header>
+
+        <div class="field">
+          <div class="field-label" id="lbl-mode">Режим</div>
+          <div class="seg seg-3" id="mode-seg" role="radiogroup" aria-labelledby="lbl-mode">
+            <button type="button" role="radio" data-value="map">Страны</button>
+            <button type="button" role="radio" data-value="capitals">Столицы</button>
+            <button type="button" role="radio" data-value="combo">Страны + столицы</button>
+          </div>
+          <p class="hint" id="mode-hint"></p>
+        </div>
+
+        <div class="field" id="variant-field">
+          <div class="field-label" id="lbl-variant">Как отвечать</div>
+          <div class="seg seg-3v" id="variant-seg" role="radiogroup" aria-labelledby="lbl-variant">
+            <button type="button" role="radio" data-value="input">С клавиатуры</button>
+            <button type="button" role="radio" data-value="choice">4 варианта</button>
+            <button type="button" role="radio" data-value="reverse">Чья столица?</button>
+          </div>
+          <p class="hint" id="variant-hint"></p>
+        </div>
+
+        <div class="field">
+          <div class="field-label" id="lbl-region">Регион</div>
+          <div class="seg seg-2x2" id="region-seg" role="radiogroup" aria-labelledby="lbl-region"></div>
+          <div class="seg seg-sub" id="asia-seg" role="radiogroup" aria-label="Часть Азии" hidden></div>
+        </div>
+
+        <div class="field">
+          <div class="field-label" id="lbl-hl">Отметки на карте</div>
+          <div class="seg seg-2" id="hl-seg" role="radiogroup" aria-labelledby="lbl-hl">
+            <button type="button" role="radio" data-value="on">С подсветкой</button>
+            <button type="button" role="radio" data-value="off">Без подсветки</button>
+          </div>
+          <p class="hint" id="hl-hint"></p>
+        </div>
+
+        <button class="btn btn-primary btn-start" id="btn-start" type="button">Начать <span id="start-hint"></span></button>
+
+        <div class="link-list">
+          <button class="row-btn" id="btn-mistakes" type="button" hidden></button>
+          <button class="row-btn" id="btn-weak" type="button" hidden></button>
+          <button class="row-btn" id="btn-known-list" type="button"></button>
+          <button class="row-btn" id="btn-study" type="button"><span>Атлас — посмотреть страны и столицы</span></button>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Статистика</div>
+          <dl class="stats" id="stats"></dl>
+          <p class="weak-line" id="weak-line" hidden></p>
+        </div>
+
+        <footer class="menu-foot">
+          <label class="check"><input type="checkbox" id="sound-toggle"> Звук</label>
+          <button class="link-btn" id="btn-reset" type="button">Сбросить статистику</button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- Результат -->
+    <section class="panel result" id="result" aria-labelledby="result-title">
+      <div class="panel-inner">
+        <header>
+          <p class="result-kicker" id="result-kicker"></p>
+          <h2 class="result-score" id="result-title"><span id="res-score">0 из 0</span> <span class="muted" id="res-percent">0%</span></h2>
+          <div class="result-bar"><i id="res-bar"></i></div>
+          <p class="result-meta" id="res-meta"></p>
+        </header>
+
+        <div class="result-actions">
+          <button class="btn btn-primary" id="btn-again" type="button">Ещё раз</button>
+          <button class="btn" id="btn-fix" type="button">Работа над ошибками</button>
+          <button class="btn" id="btn-menu" type="button">Меню</button>
+        </div>
+
+        <div class="field">
+          <div class="field-label" id="mistakes-title">Ошибки</div>
+          <p class="hint" id="mistakes-hint">Нажмите на строку — страна покажется на карте.</p>
+          <ol class="mistake-list" id="mistake-list"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Пауза -->
+    <div class="modal" id="pause" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+        <h3 id="pause-title">Пауза</h3>
+        <p>Таймер остановлен.</p>
+        <div class="modal-actions">
+          <button class="btn" id="pause-menu" type="button">Выйти в меню</button>
+          <button class="btn btn-primary" id="pause-resume" type="button">Продолжить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Известные столицы -->
+    <div class="modal" id="known-modal" hidden>
+      <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="known-title">
+        <h3 id="known-title">Известные столицы</h3>
+        <p>Отмеченные столицы не спрашиваются в режиме «Столицы».</p>
+        <div class="known-list" id="known-list"></div>
+        <div class="modal-actions">
+          <button class="btn" id="known-clear" type="button">Снять все</button>
+          <button class="btn btn-primary" id="known-done" type="button">Готово</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Подтверждение выхода -->
+    <div class="modal" id="confirm" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <h3 id="confirm-title">Прервать тест?</h3>
+        <p>Результат этой попытки не сохранится.</p>
+        <div class="modal-actions">
+          <button class="btn" id="confirm-no" type="button">Продолжить</button>
+          <button class="btn btn-danger" id="confirm-yes" type="button">Выйти</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <noscript><p class="noscript">Для работы тренажёра включите JavaScript.</p></noscript>
+
+  <script src="js/data.js"></script>
+  <script src="js/map-data.js"></script>
+  <script src="js/quiz.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

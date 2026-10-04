@@ -1,0 +1,810 @@
+/* Геодиктант — оформление */
+
+:root {
+  --bg: #0f1216;
+  --ocean: #0d1014;
+  --panel: #15181d;
+  --panel-2: #1b1f26;
+  --panel-3: #232831;
+  --line: #262b33;
+  --line-2: #343a45;
+  --text: #e7e9ec;
+  --text-2: #9aa1ab;
+  --text-3: #6b727c;
+
+  --land-bg: #191d24;
+  --land: #364258;
+  --land-hover: #4d5d7b;
+  --land-inactive: #252c39;
+  --border: #0c1017;
+
+  --accent: #3d7cf2;
+  --accent-hover: #5590ff;
+  --accent-text: #8db4ff;
+  --ok: #34b55c;
+  --ok-text: #6fdc8f;
+  --bad: #e5484d;
+  --bad-text: #ff8a8e;
+  --reveal: #f0b429;
+
+  --r: 8px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --panel-w: 360px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+button { font: inherit; color: inherit; touch-action: manipulation; }
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.map-svg { -webkit-touch-callout: none; }
+[hidden] { display: none !important; }
+svg { display: block; }
+.muted { color: var(--text-3); }
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app { position: fixed; top: 0; right: 0; bottom: 0; left: 0; overflow: hidden; }
+
+/* ===== Карта ===== */
+
+.map-wrap {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  overflow: hidden;
+  background: var(--ocean);
+}
+
+.map-svg {
+  position: absolute;
+  transform-origin: 0 0;
+  will-change: transform;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.map-svg.is-dragging { cursor: grabbing; }
+
+.ocean { fill: transparent; }
+
+.land-bg {
+  fill: var(--land-bg);
+  stroke: var(--border);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.country {
+  fill: var(--land);
+  stroke: var(--border);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+.is-dragging .country, .is-dragging .marker { cursor: grabbing; }
+
+@media (hover: hover) {
+  [data-highlight="on"][data-screen="game"][data-stage="place"] .country:not(.is-inactive):hover,
+  [data-screen="study"] .country:not(.is-inactive):hover,
+  [data-screen="result"] .country:not(.is-inactive):hover {
+    fill: var(--land-hover);
+  }
+  [data-highlight="on"][data-screen="game"][data-stage="place"] .marker:not(.is-inactive):hover,
+  [data-screen="study"] .marker:not(.is-inactive):hover {
+    fill: var(--land-hover);
+    stroke: #fff;
+  }
+}
+
+.country.is-inactive { fill: var(--land-inactive); pointer-events: none; }
+.marker.is-inactive { opacity: 0.25; pointer-events: none; }
+
+[data-screen="menu"] .country, [data-screen="menu"] .marker,
+[data-screen="game"]:not([data-stage="place"]) .country,
+[data-screen="game"]:not([data-stage="place"]) .marker { cursor: inherit; }
+
+.marker {
+  fill: var(--land);
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.country.is-ok, .marker.is-ok { fill: var(--ok); }
+.country.is-bad, .marker.is-bad { fill: var(--bad); }
+
+.country.is-picked, .marker.is-picked { stroke: #fff; stroke-width: 1.5; }
+
+.country.is-wrong, .marker.is-wrong {
+  fill: #6e2a31;
+  stroke: var(--bad);
+  stroke-width: 1.5;
+}
+
+/* Правильный ответ после ошибки: мигает три раза и остаётся жёлтым */
+.country.is-reveal, .marker.is-reveal {
+  fill: var(--reveal);
+  stroke: #fff;
+  stroke-width: 1.8;
+  animation: reveal 0.6s ease-in-out 3;
+}
+@keyframes reveal { 50% { fill: var(--bad); } }
+
+/* Страна, о столице которой спрашивают */
+.country.is-target, .marker.is-target {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.country.is-focus, .marker.is-focus { fill: var(--accent); stroke: #fff; stroke-width: 1.5; }
+
+.label { pointer-events: none; }
+.label text { font: 600 13px var(--font); fill: #fff; }
+.label-bg { fill: rgba(13, 16, 20, 0.92); stroke: var(--line-2); stroke-width: 1; }
+.label-ok .label-bg { stroke: var(--ok); }
+.label-wrong .label-bg { stroke: var(--bad); }
+.label-reveal .label-bg { stroke: var(--reveal); }
+.label-capital .label-bg { stroke: var(--reveal); }
+.pin { fill: var(--reveal); stroke: #0d1014; stroke-width: 2; }
+.pin-halo { fill: none; }
+
+/* ===== Игровая панель ===== */
+
+.hud {
+  position: absolute;
+  top: calc(12px + var(--safe-t));
+  left: 12px;
+  right: 12px;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
+  align-items: start;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 5;
+}
+.hud > * { pointer-events: auto; }
+.hud-side { display: flex; align-items: center; gap: 6px; }
+.hud-right { justify-content: flex-end; }
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--r);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text-2);
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--panel-3); color: var(--text); }
+
+.counter, .stat {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.counter { font-weight: 600; }
+.stat-label { color: var(--text-3); font-size: 13px; }
+.stat b { font-weight: 600; }
+.stat.is-hot b { color: var(--reveal); }
+.stat-time { min-width: 64px; justify-content: center; }
+
+.question-card {
+  min-width: min(420px, 100%);
+  max-width: 640px;
+  padding: 10px 20px 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  text-align: center;
+}
+.question-card.state-ok { border-color: var(--ok); }
+.question-card.state-bad { border-color: var(--bad); }
+
+.question-kicker { font-size: 12px; color: var(--text-3); }
+.question {
+  margin: 2px 0 0;
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.question b { font-weight: 700; color: var(--accent-text); }
+
+.feedback {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.feedback.show { display: flex; }
+.feedback-icon {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700;
+  flex: none;
+}
+.feedback.ok .feedback-icon { background: var(--ok); color: #fff; }
+.feedback.bad .feedback-icon { background: var(--bad); color: #fff; }
+.feedback-text { color: var(--text-2); }
+.feedback-text b { color: var(--text); font-weight: 600; }
+.feedback-text b.ok { color: var(--ok-text); }
+.feedback-text b.hl { color: var(--reveal); }
+.feedback-text .sep { color: var(--text-3); margin: 0 4px; }
+
+.next-btn {
+  position: relative;
+  overflow: hidden;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-3);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.next-btn:hover { background: #2c323c; }
+.next-btn[hidden] { display: none; }
+.next-timer {
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.next-timer.run { animation: next-run linear forwards; animation-duration: var(--dur, 2s); }
+.is-paused .next-timer.run { animation-play-state: paused; }
+@keyframes next-run { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* Кнопка «Знаю» под вопросом */
+.known-btn {
+  display: none;
+  margin: 6px auto 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.known-btn:hover { color: var(--ok-text); border-color: var(--ok); }
+[data-mode="capitals"][data-answered="no"] .known-btn { display: block; }
+
+/* ===== Ввод столицы ===== */
+
+.answer-form {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + var(--safe-b));
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 24px));
+  display: none;
+  gap: 8px;
+  z-index: 5;
+  /* --kb — высота экранной клавиатуры телефона (задаётся из app.js) */
+  margin-bottom: var(--kb, 0px);
+}
+.answer-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  color: var(--text);
+  font: 600 17px var(--font);
+  outline: none;
+}
+.answer-input:focus { border-color: var(--accent); }
+.answer-input:disabled { opacity: 1; }
+.answer-form.ok .answer-input { border-color: var(--ok); background: #173a24; }
+.answer-form.bad .answer-input { border-color: var(--bad); background: #3d1a1d; }
+.answer-form .btn { height: 48px; }
+.answer-form .btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Всплывающее сообщение */
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  padding: 10px 16px;
+  border-radius: var(--r);
+  background: var(--panel-2);
+  border: 1px solid var(--ok);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* ===== Варианты ответа ===== */
+
+.options {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + var(--safe-b));
+  transform: translateX(-50%);
+  width: min(820px, calc(100% - 24px));
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  z-index: 5;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.option .key {
+  flex: none;
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border-radius: 4px;
+  background: var(--panel-3);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.option:not(:disabled):hover { background: var(--panel-3); border-color: var(--accent); }
+.option:disabled { cursor: default; }
+.option.dim { opacity: 0.45; }
+.option.correct { background: #173a24; border-color: var(--ok); }
+.option.wrong { background: #3d1a1d; border-color: var(--bad); }
+
+/* ===== Кнопки у карты ===== */
+
+.skip-btn {
+  position: absolute;
+  left: 50%;
+  bottom: calc(24px + var(--safe-b));
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 9px 18px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.skip-btn:hover { color: var(--text); background: var(--panel-3); }
+.skip-btn:disabled { opacity: 0.4; cursor: default; }
+
+.map-controls {
+  position: absolute;
+  right: 12px;
+  bottom: calc(24px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 4;
+}
+
+.progress-strip {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: calc(4px + var(--safe-b));
+  padding-bottom: var(--safe-b);
+  display: flex;
+  gap: 1px;
+  background: #000;
+  z-index: 6;
+}
+.progress-strip i { flex: 1; background: #252a32; }
+.progress-strip i.ok { background: var(--ok); }
+.progress-strip i.bad { background: var(--bad); }
+.progress-strip i.half { background: linear-gradient(90deg, var(--ok) 50%, var(--bad) 50%); }
+.progress-strip i.now { background: var(--accent); }
+
+.tooltip {
+  position: fixed;
+  z-index: 20;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  font-size: 14px;
+  transform: translate(14px, 14px);
+  white-space: nowrap;
+}
+.tooltip b { display: block; }
+.tooltip span { color: var(--text-2); }
+
+/* ===== Панели меню и результата ===== */
+
+.panel {
+  position: absolute;
+  z-index: 10;
+  top: 0; bottom: 0; left: 0;
+  width: var(--panel-w);
+  max-width: 100%;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: none;
+}
+[data-screen="menu"] .menu,
+[data-screen="result"] .result { display: block; }
+
+.panel-inner {
+  padding: calc(24px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100%;
+}
+
+.menu-head h2 { margin: 0; font-size: 22px; font-weight: 700; }
+.menu-head p { margin: 2px 0 0; color: var(--text-2); font-size: 14px; }
+
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.hint { margin: 0; font-size: 13px; color: var(--text-3); }
+
+/* Сегментированный переключатель */
+.seg {
+  display: grid;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+.seg-2 { grid-template-columns: 1fr 1fr; }
+.seg-3 { grid-template-columns: 1fr 1fr 1.45fr; }
+.seg-2x2 { grid-template-columns: 1fr 1fr; }
+.seg-sub { grid-template-columns: 1fr 1fr; }
+.seg-sub button { font-size: 13px; padding: 7px 4px; white-space: normal; min-width: 0; }
+.seg-sub button:first-child,
+.seg-sub button:last-child:nth-child(even) { grid-column: 1 / -1; }
+.seg-3v { grid-template-columns: 1fr 1fr 1fr; }
+.seg-3v button { white-space: normal; line-height: 1.2; }
+.seg button {
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg button small { color: var(--text-3); margin-left: 4px; }
+.seg button:hover { color: var(--text); background: var(--panel-2); }
+.seg button[aria-checked="true"] { background: var(--panel-3); color: var(--text); font-weight: 600; }
+.seg button[aria-checked="true"] small { color: var(--text-2); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { background: var(--panel-3); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn-start { padding: 13px 16px; font-size: 16px; }
+.btn-start span { font-weight: 400; opacity: 0.8; }
+
+.link-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.row-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.row-btn:hover { color: var(--accent-text); }
+.row-btn::after { content: '›'; color: var(--text-3); font-size: 18px; line-height: 1; }
+.row-btn .count { margin-left: auto; color: var(--bad-text); font-variant-numeric: tabular-nums; }
+.row-btn .count-ok { color: var(--ok-text); }
+.btn-start:disabled { opacity: 0.5; cursor: default; }
+
+.stats { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 14px; }
+.stats dt { color: var(--text-2); }
+.stats dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.weak-line { margin: 2px 0 0; font-size: 13px; color: var(--text-2); }
+.weak-line b { color: var(--bad-text); font-weight: 600; }
+
+.menu-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  color: var(--text-3);
+  font-size: 13px;
+  cursor: pointer;
+}
+.link-btn:hover { color: var(--bad-text); }
+
+/* Результат */
+.result-kicker { margin: 0; font-size: 13px; color: var(--text-2); }
+.result-score { margin: 4px 0 10px; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.result-score .muted { font-weight: 500; font-size: 20px; }
+.result-bar { height: 6px; border-radius: 3px; background: var(--panel-3); overflow: hidden; }
+.result-bar i { display: block; height: 100%; width: 0; background: var(--ok); transition: width 0.6s ease; }
+.result-meta { margin: 10px 0 0; font-size: 14px; color: var(--text-2); }
+.result-meta .record { color: var(--reveal); font-weight: 600; }
+
+.result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.result-actions .btn-primary { grid-column: 1 / -1; padding: 12px; font-size: 15px; }
+
+.mistake-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.mistake {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1px 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.mistake:hover, .mistake.active { background: var(--panel-2); }
+.mistake b { font-weight: 600; }
+.mistake .cap { color: var(--text-2); text-align: right; }
+.mistake .given { grid-column: 1 / -1; font-size: 13px; color: var(--bad-text); }
+.no-mistakes { padding: 14px 4px; color: var(--ok-text); }
+
+/* ===== Модальные окна ===== */
+
+.modal {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 10, 13, 0.72);
+}
+.modal-card {
+  width: min(360px, 100%);
+  padding: 20px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+}
+.modal-card h3 { margin: 0 0 4px; font-size: 18px; }
+.modal-card p { margin: 0 0 16px; color: var(--text-2); font-size: 14px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-wide { width: min(560px, 100%); display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+.known-list {
+  overflow-y: auto;
+  margin: 0 -4px 16px;
+  padding: 0 4px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.known-list h4 { margin: 12px 0 6px; font-size: 13px; color: var(--text-2); font-weight: 600; }
+.known-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.known-grid label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 14px;
+  cursor: pointer;
+}
+.known-grid input { width: 16px; height: 16px; margin: 0; accent-color: var(--ok); flex: none; }
+.known-grid .kn i { font-style: normal; color: var(--text-3); }
+@media (max-width: 520px) { .known-grid { grid-template-columns: 1fr; } }
+
+/* ===== Что видно на каком экране ===== */
+
+.hud, .options, .skip-btn, .progress-strip { display: none; }
+[data-screen="game"] .hud,
+[data-screen="game"] .progress-strip,
+[data-screen="study"] .hud { display: grid; }
+[data-screen="game"] .progress-strip { display: flex; }
+[data-screen="game"][data-stage="capital"] .options { display: grid; }
+[data-screen="game"][data-stage="place"] .skip-btn { display: block; }
+[data-screen="game"][data-stage="input"] .answer-form { display: flex; }
+[data-screen="menu"]:not([data-mode="capitals"]) #variant-field { display: none; }
+[data-screen="study"] .counter,
+[data-screen="study"] #btn-pause,
+[data-screen="study"] .hud-right { visibility: hidden; }
+
+[data-screen="game"][data-stage="capital"] .map-controls,
+[data-screen="game"][data-stage="input"] .map-controls { bottom: calc(96px + var(--safe-b)); }
+
+/* ===== Адаптивность ===== */
+
+@media (max-width: 1100px) {
+  .hud { grid-template-columns: auto 1fr auto; }
+  .stat-label { display: none; }
+}
+
+@media (max-width: 860px) {
+  .hud {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "left right" "q q";
+    gap: 6px;
+    top: calc(8px + var(--safe-t));
+    left: 8px; right: 8px;
+  }
+  .hud-left { grid-area: left; }
+  .hud-right { grid-area: right; }
+  .question-card { grid-area: q; min-width: 0; max-width: none; padding: 8px 12px 10px; }
+  .icon-btn, .counter, .stat { height: 36px; }
+  .icon-btn { width: 36px; }
+  .stat { padding: 0 9px; }
+  .stat-label { display: inline; }
+  .question-kicker { display: none; }
+  .question { font-size: 20px; }
+
+  .options { grid-template-columns: 1fr 1fr; gap: 6px; bottom: calc(12px + var(--safe-b)); }
+  .option { min-height: 48px; font-size: 15px; }
+  .skip-btn { bottom: calc(14px + var(--safe-b)); }
+  .map-controls { right: 8px; bottom: calc(14px + var(--safe-b)); }
+  [data-screen="game"][data-stage="capital"] .map-controls { bottom: calc(132px + var(--safe-b)); }
+  [data-screen="game"][data-stage="input"] .map-controls { bottom: calc(76px + var(--safe-b)); }
+  .answer-form { bottom: calc(12px + var(--safe-b)); gap: 6px; }
+  .answer-form .btn { padding: 10px; }
+  .known-btn { padding: 7px 12px; font-size: 14px; }
+  .seg-3v button { white-space: normal; line-height: 1.2; }
+
+  .panel {
+    top: auto;
+    width: 100%;
+    max-height: 86%;
+    border-right: 0;
+    border-top: 1px solid var(--line-2);
+    border-radius: 12px 12px 0 0;
+  }
+  .result { max-height: 60%; }
+  .panel-inner { padding: 18px 16px calc(18px + var(--safe-b)); gap: 16px; }
+  [data-screen="menu"] .map-controls,
+  [data-screen="result"] .map-controls { display: none; }
+}
+
+/* Узкий экран: поле ввода на всю ширину, кнопки под ним */
+@media (max-width: 520px) {
+  [data-screen="game"][data-stage="input"] .answer-form { display: grid; grid-template-columns: 1fr 1fr; }
+  .answer-form .answer-input { grid-column: 1 / -1; }
+  [data-screen="game"][data-stage="input"] .map-controls { bottom: calc(130px + var(--safe-b)); }
+}
+
+@media (max-width: 420px) {
+  .stat-time { display: none; }
+  .stat { padding: 0 8px; gap: 4px; }
+  .stat-label { font-size: 12px; }
+  .seg button { font-size: 13px; padding: 8px 4px; }
+}
+
+/* Телефон, повёрнутый горизонтально: панель меню сбоку, вопрос в одну строку */
+@media (max-width: 860px) and (max-height: 500px) and (orientation: landscape) {
+  .hud {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: none;
+    top: calc(6px + var(--safe-t));
+    left: calc(6px + env(safe-area-inset-left, 0px));
+    right: calc(6px + env(safe-area-inset-right, 0px));
+  }
+  .hud-left, .hud-right, .question-card { grid-area: auto; }
+  .question-card { padding: 5px 10px 6px; }
+  .question { font-size: 17px; }
+  .feedback { margin-top: 4px; padding-top: 4px; font-size: 13px; }
+  .known-btn { margin-top: 3px; padding: 3px 10px; font-size: 13px; }
+  .stat-label { display: none; }
+  .stat-time { display: flex; }
+  .icon-btn, .counter, .stat { height: 34px; }
+  .icon-btn { width: 34px; }
+  .options { grid-template-columns: repeat(4, 1fr); bottom: calc(8px + var(--safe-b)); }
+  .option { min-height: 40px; font-size: 14px; padding: 6px 8px; }
+  .answer-form { bottom: 8px; width: min(520px, calc(100% - 120px)); }
+  .answer-input, .answer-form .btn { height: 40px; }
+  .skip-btn { bottom: 8px; }
+  .map-controls { gap: 4px; bottom: 8px; }
+  .map-controls .icon-btn { width: 34px; height: 34px; }
+  [data-screen="game"][data-stage="capital"] .map-controls,
+  [data-screen="game"][data-stage="input"] .map-controls { bottom: 58px; }
+
+  .panel {
+    top: 0;
+    width: min(340px, 55%);
+    max-height: none;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    border-radius: 0;
+  }
+  .result { max-height: none; }
+  .panel-inner { padding: 12px 14px calc(12px + var(--safe-b)) calc(14px + env(safe-area-inset-left, 0px)); gap: 12px; }
+  [data-screen="menu"] .map-controls,
+  [data-screen="result"] .map-controls { display: flex; }
+}
+
+@media (max-height: 560px) and (min-width: 600px) {
+  .question-kicker { display: none; }
+  .question-card { padding: 6px 14px 8px; }
+  .options { bottom: 10px; }
+  .option { min-height: 42px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+.noscript { position: fixed; left: 0; right: 0; bottom: 0; padding: 16px; text-align: center; background: var(--bad); color: #fff; margin: 0; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

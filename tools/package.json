@@ -1,0 +1,19 @@
+{
+  "name": "geodictant-map-build",
+  "version": "1.0.0",
+  "description": "Сборка js/map-data.js из Natural Earth",
+  "scripts": {
+    "build": "node build-map.mjs",
+    "single": "node build-single.mjs"
+  },
+  "devDependencies": {
+    "d3-geo": "^3.1.1",
+    "d3-geo-projection": "^4.0.0",
+    "polygon-clipping": "^0.15.7",
+    "polylabel": "^2.1.0",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
+  },
+  "type": "module",
+  "private": true
+}
